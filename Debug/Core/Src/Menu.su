@@ -1,0 +1,4 @@
+../Core/Src/Menu.c:79:15:isUp	4	static
+../Core/Src/Menu.c:83:15:isDown	4	static
+../Core/Src/Menu.c:89:6:DrawMenu	64	static
+../Core/Src/Menu.c:171:6:Menu	112	static
