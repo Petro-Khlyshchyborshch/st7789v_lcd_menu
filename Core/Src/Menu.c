@@ -99,32 +99,6 @@ void DrawMenu(MenuItem* MenuVector, uint16_t MenuVectorLen,FontDef font, uint16_
     // Розрахунок кількості видимих елементів на екрані
     uint16_t MAX_VISIBLE_ITEMS = ST7789_HEIGHT / (font.height + YSpace);
 
-    /*
-    if(currentSelection<0)
-    {
-    	currentSelection = MenuVectorLen;
-    	scrollOffset = MenuVectorLen-MAX_VISIBLE_ITEMS;
-    }
-
-	if((scrollOffset+MAX_VISIBLE_ITEMS)<=currentSelection)
-      {
-      	scrollOffset++;
-      }
-
-	if(scrollOffset>=currentSelection)
-	{
-		scrollOffset--;
-	}
-
-
-	  if (currentSelection >=MenuVectorLen)
-	  {
-		  currentSelection = 0;
-		  scrollOffset = 0;
-	  }
-
-*/
-
     // Перевірка циклічності для currentSelection
     if (currentSelection < 0)
     {
@@ -148,7 +122,6 @@ void DrawMenu(MenuItem* MenuVector, uint16_t MenuVectorLen,FontDef font, uint16_
         scrollOffset--;  // Зменшуємо scrollOffset, щоб перемістити меню вверх
     }
 
-
     for(uint16_t i = 0; i < MAX_VISIBLE_ITEMS; i++)
     {
     	uint16_t itemIndex = scrollOffset + i;
@@ -161,7 +134,10 @@ void DrawMenu(MenuItem* MenuVector, uint16_t MenuVectorLen,FontDef font, uint16_
         uint16_t XOffset = (ST7789_WIDTH - TextLen) / 2;
         uint16_t YOffset = (font.height + YSpace) * i;
 
-        uint16_t textColor = (itemIndex == currentSelection) ? RED : WHITE;  // Виділений елемент червоним, інші білим
+        uint16_t textColor = (itemIndex == currentSelection) ? BLUE : WHITE;  // Виділений елемент червоним, інші білим
+
+
+        //ST7789_Fill(0,YOffset,ST7789_WIDTH-1,YOffset+font.height,BLACK);
 
         ST7789_WriteString(XOffset, YOffset, MenuRow[itemIndex].text, font, textColor, BLACK);
     }

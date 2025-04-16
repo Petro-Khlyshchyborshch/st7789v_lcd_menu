@@ -247,15 +247,22 @@ void ST7789_DrawPixel(uint16_t x, uint16_t y, uint16_t color)
 void ST7789_Fill(uint16_t xSta, uint16_t ySta, uint16_t xEnd, uint16_t yEnd, uint16_t color)
 {
 	if ((xEnd < 0) || (xEnd >= ST7789_WIDTH) ||
-		 (yEnd < 0) || (yEnd >= ST7789_HEIGHT))	return;
+		 (yEnd < 0) || (yEnd >= ST7789_HEIGHT))
+	{
+		return;
+	}
+
 	ST7789_Select();
 	uint16_t i, j;
 	ST7789_SetAddressWindow(xSta, ySta, xEnd, yEnd);
 	for (i = ySta; i <= yEnd; i++)
-		for (j = xSta; j <= xEnd; j++) {
+	{
+		for (j = xSta; j <= xEnd; j++)
+		{
 			uint8_t data[] = {color >> 8, color & 0xFF};
 			ST7789_WriteData(data, sizeof(data));
 		}
+	}
 	ST7789_UnSelect();
 }
 
@@ -439,6 +446,9 @@ void ST7789_InvertColors(uint8_t invert)
  * @param bgcolor -> background color of the char
  * @return  none
  */
+//#define LEGACY
+
+#ifdef LEGACY
 void ST7789_WriteChar(uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color, uint16_t bgcolor)
 {
 	uint32_t i, b, j;
@@ -461,6 +471,48 @@ void ST7789_WriteChar(uint16_t x, uint16_t y, char ch, FontDef font, uint16_t co
 	ST7789_UnSelect();
 }
 
+#else
+
+void ST7789_WriteChar(uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color, uint16_t bgcolor)
+{
+    uint32_t i, j;
+    uint8_t pixel_data[font.width * 2];
+
+    uint8_t color_hi = color >> 8;
+    uint8_t color_lo = color & 0xFF;
+    uint8_t bgcolor_hi = bgcolor >> 8;
+    uint8_t bgcolor_lo = bgcolor & 0xFF;
+
+    ST7789_Select();
+    ST7789_SetAddressWindow(x, y, x + font.width - 1, y + font.height - 1);
+
+    for (i = 0; i < font.height; i++)
+    {
+        uint32_t b = font.data[(ch - 32) * font.height + i];
+
+        // Create one pixel row
+        for (j = 0; j < font.width * 2; j += 2)
+        {
+            if ((b << (j / 2)) & 0x8000)
+            {
+                pixel_data[j] = color_hi;
+                pixel_data[j + 1] = color_lo;
+            }
+            else
+            {
+                pixel_data[j] = bgcolor_hi;
+                pixel_data[j + 1] = bgcolor_lo;
+            }
+        }
+
+        // Write the row of pixel data at once
+        ST7789_WriteData(pixel_data, sizeof(pixel_data));
+    }
+
+    ST7789_UnSelect();
+}
+#endif
+
 /** 
  * @brief Write a string 
  * @param  x&y -> cursor of the start point.
@@ -470,6 +522,7 @@ void ST7789_WriteChar(uint16_t x, uint16_t y, char ch, FontDef font, uint16_t co
  * @param bgcolor -> background color of the string
  * @return  none
  */
+#ifdef LEGACY
 void ST7789_WriteString(uint16_t x, uint16_t y, const char *str, FontDef font, uint16_t color, uint16_t bgcolor)
 {
 	ST7789_Select();
@@ -493,6 +546,66 @@ void ST7789_WriteString(uint16_t x, uint16_t y, const char *str, FontDef font, u
 	}
 	ST7789_UnSelect();
 }
+#else
+
+void ST7789_WriteString(uint16_t x, uint16_t y, const char *str, FontDef font, uint16_t color, uint16_t bgcolor)
+{
+    uint32_t i, j, k;
+    uint8_t *pixel_data;
+    uint16_t string_width = 0;
+    const char *temp_str = str;
+
+
+    while (*temp_str) {
+        string_width += font.width;
+        temp_str++;
+    }
+
+
+    pixel_data = (uint8_t*)malloc(string_width * font.height * 2);
+    if (pixel_data == NULL)
+    {
+
+        return;
+    }
+
+
+
+    uint16_t current_x = x;
+    temp_str = str;
+    for (k = 0; temp_str[k] != '\0'; k++)
+    {
+        for (i = 0; i < font.height; i++)
+        {
+            uint32_t b = font.data[(temp_str[k] - 32) * font.height + i];
+
+
+            for (j = 0; j < font.width * 2; j += 2)
+            {
+                uint16_t pixel_index = (current_x - x + (k * font.width) + j / 2) * 2 + (i * string_width * 2);
+                if ((b << (j / 2)) & 0x8000)
+                {
+                    pixel_data[pixel_index] = color >> 8;
+                    pixel_data[pixel_index + 1] = color & 0xFF;
+                } else
+                {
+                    pixel_data[pixel_index] = bgcolor >> 8;
+                    pixel_data[pixel_index + 1] = bgcolor & 0xFF;
+                }
+            }
+        }
+    }
+
+
+    ST7789_Select();
+    ST7789_SetAddressWindow(x, y, x + string_width - 1, y + font.height - 1);
+    ST7789_WriteData(pixel_data, string_width * font.height * 2);
+    ST7789_UnSelect();
+
+
+    free(pixel_data);
+}
+#endif
 
 uint16_t ST7789_GetStringPixelSize(const char *str, FontDef font)
 {
